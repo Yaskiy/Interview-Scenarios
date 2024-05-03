@@ -28,7 +28,7 @@ namespace TFLInterviewScenarios.Pages
         By confirmArrivngOption = By.XPath("//label[text()='Arriving']");
         By dateDropdown = By.CssSelector("select[id='Date']");
         By timeDropdown = By.CssSelector("select[id='Time']");
-        By selectDate = By.CssSelector("select[id='Date'] [value='20240501']");
+        By selectDate = By.XPath("//select[@id='Date']/option[text()='Tomorrow']");
         By selectTime = By.CssSelector("select[id='Time'] [value='1430']");
         By recentTab = By.CssSelector("a[href='#jp-recent']");
         By functionalitycookies = By.XPath("//*[@id='jp-recent-content-home-']/ul/div/div[2]/a");
