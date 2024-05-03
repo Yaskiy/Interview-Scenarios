@@ -24,7 +24,7 @@ Scenario: Test_02_Verify that the widget is unable to provide results when an in
 	And a user input Oju in the 'To' text-field
 	And a user clicks on plan my journey button
 	Then the Journey results Page is Loaded with the Journey Information
-	Then a Message Sorry, we can't find a journey matching your criteria should appear
+	And a Message Sorry, we can't find a journey matching your criteria should appear
 
 Scenario: Test_03_Verify that the widget is unable to plan a journey if no locations are entered into the widget
 
