@@ -1,11 +1,17 @@
 ﻿using BoDi;
 using OpenQA.Selenium;
 using OpenQA.Selenium.Chrome;
-using System;
+using System.Net;
+using WebDriverManager.Clients;
+using WebDriverManager.DriverConfigs;
+using WebDriverManager.Helpers;
+using WebDriverManager.Services.Impl;
+using WebDriverManager.Services;
+using WebDriverManager.DriverConfigs.Impl;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System;
 
 namespace TFLInterviewScenarios.BrowserFactories
 {
@@ -86,13 +92,104 @@ namespace TFLInterviewScenarios.BrowserFactories
             options.SetLoggingPreference(LogType.Browser, LogLevel.All);
             options.LeaveBrowserRunning = false;
 
-            var chromeDriverService = ChromeDriverService.CreateDefaultService(ChromeDriverPath);
+            ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            string path = new DriverManager().SetUpDriver(new ChromeConfig());
+            string driverPath = new string(path.Take(path.Length - 16).ToArray());
+
+            var chromeDriverService = ChromeDriverService.CreateDefaultService(driverPath);
             chromeDriverService.HideCommandPromptWindow = true;
 
             driver = new ChromeDriver(chromeDriverService, options, WebDriverTimeout);
             objectContainer.RegisterInstanceAs<IWebDriver>(driver);
             return driver;
         }
+    }
 
+    public class DriverManager
+    {
+
+
+        private static readonly object Object = new object();
+
+
+        private IBinaryService _binaryService;
+        private readonly IVariableService _variableService;
+        private string _downloadDirectory = Directory.GetCurrentDirectory();
+
+
+        public DriverManager()
+        {
+            _binaryService = new BinaryService();
+            _variableService = new VariableService();
+        }
+
+
+        public DriverManager(string downloadDirectory) : this()
+        {
+            _downloadDirectory = downloadDirectory;
+        }
+
+
+        public DriverManager(IBinaryService binaryService, IVariableService variableService)
+        {
+            _binaryService = binaryService;
+            _variableService = variableService;
+        }
+
+
+        public DriverManager WithProxy(IWebProxy proxy)
+        {
+            _binaryService = new BinaryService { Proxy = proxy };
+            ChromeForTestingClient.Proxy = proxy;
+            WebRequest.DefaultWebProxy = proxy;
+            return this;
+        }
+
+
+
+        public string SetUpDriver(string url, string binaryPath)
+        {
+            lock (Object)
+            {
+                return SetUpDriverImpl(url, binaryPath);
+            }
+        }
+
+
+        public string SetUpDriver(IDriverConfig config, string version = VersionResolveStrategy.MatchingBrowser,
+            WebDriverManager.Helpers.Architecture architecture = WebDriverManager.Helpers.Architecture.Auto)
+        {
+            lock (Object)
+            {
+                architecture = architecture.Equals(WebDriverManager.Helpers.Architecture.Auto)
+                    ? ArchitectureHelper.GetArchitecture()
+                    : architecture;
+                version = GetVersionToDownload(config, version);
+                var url = architecture.Equals(WebDriverManager.Helpers.Architecture.X32) ? config.GetUrl32() : config.GetUrl64();
+                url = UrlHelper.BuildUrl(url, version);
+                var binaryPath = Path.Combine(_downloadDirectory, config.GetName(), version, architecture.ToString(), config.GetBinaryName());
+                return SetUpDriverImpl(url, binaryPath);
+            }
+        }
+
+
+        private string SetUpDriverImpl(string url, string binaryPath)
+        {
+            var zipPath = WebDriverManager.Helpers.FileHelper.GetZipDestination(url);
+            binaryPath = _binaryService.SetupBinary(url, zipPath, binaryPath);
+            _variableService.SetupVariable(binaryPath);
+            return binaryPath;
+        }
+
+
+        private static string GetVersionToDownload(IDriverConfig config, string version)
+        {
+            switch (version)
+            {
+                case VersionResolveStrategy.MatchingBrowser: return config.GetMatchingBrowserVersion();
+                case VersionResolveStrategy.Latest: return config.GetLatestVersion();
+                default: return version;
+            }
+        }
     }
 }

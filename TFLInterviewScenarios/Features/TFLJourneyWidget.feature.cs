@@ -172,7 +172,7 @@ this.FeatureBackground();
  testRunner.Then("the Journey results Page is Loaded with the Journey Information", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
 #line hidden
 #line 27
- testRunner.Then("a Message Sorry, we can\'t find a journey matching your criteria should appear", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
+ testRunner.And("a Message Sorry, we can\'t find a journey matching your criteria should appear", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
 #line hidden
             }
             this.ScenarioCleanup();
